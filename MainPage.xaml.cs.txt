@@ -1,0 +1,71 @@
+using System;
+using Microsoft.Maui.Controls; 
+using Microsoft.Maui.Devices.Sensors; 
+using System.Numerics; 
+
+
+namespace fall_detection_2._0
+{
+    public partial class MainPage : ContentPage
+    {
+        private Vector3? lastAcceleration = null; 
+        private bool isFallDetectionEnabled = false; 
+
+        public MainPage()
+        {
+            InitializeComponent(); 
+        }
+
+        private void OnToggleFallDetection(object sender, EventArgs e)
+        {
+           
+            isFallDetectionEnabled = !isFallDetectionEnabled;
+
+            if (isFallDetectionEnabled)
+            {
+                if (Accelerometer.IsSupported)
+                {
+                    Accelerometer.ReadingChanged += OnAccelerometerReadingChanged;
+                    Accelerometer.Start(SensorSpeed.UI);
+                    statusLabel.Text = "Status: Ativado";
+                    DisplayAlert("Fall Detection", "Deteção de quedas ativada!", "OK");
+                }
+                else
+                {
+                    // Caso o acelerômetro não seja suportado
+                    DisplayAlert("Erro", "O acelerômetro não é suportado neste dispositivo.", "OK");
+                    isFallDetectionEnabled = false;
+                }
+            }
+            else
+            {
+                // Para o acelerômetro
+                Accelerometer.ReadingChanged -= OnAccelerometerReadingChanged;
+                Accelerometer.Stop();
+                statusLabel.Text = "Status: Desativado";
+                DisplayAlert("Fall Detection", "Deteção de quedas desativada!", "OK");
+            }
+        }
+
+        private void OnAccelerometerReadingChanged(object sender, AccelerometerChangedEventArgs e)
+        {
+            // Lê os dados do acelerômetro
+            var acceleration = e.Reading.Acceleration;
+
+            // Calcula a magnitude do vetor de aceleração
+            double magnitude = Math.Sqrt(acceleration.X * acceleration.X +
+                                         acceleration.Y * acceleration.Y +
+                                         acceleration.Z * acceleration.Z);
+
+            // Lógica de deteção de queda: magnitude baixa seguida de um pico
+            if (magnitude < 0.5 && lastAcceleration.HasValue &&
+                Math.Abs(magnitude - lastAcceleration.Value.Length()) > 1.5)
+            {
+                DisplayAlert("Alerta de Queda", "Queda detectada!", "OK");
+            }
+
+            // Atualiza os dados do acelerômetro
+            lastAcceleration = acceleration;
+        }
+    }
+}
